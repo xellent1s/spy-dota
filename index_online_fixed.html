@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<title>Шпион — Dota 2</title>
+<style>
+:root{
+  --bg:#090b0e;--panel:#11151a;--panel2:#171c22;--line:#29313a;
+  --text:#eef2f5;--muted:#89939d;--red:#d83b32;--red2:#f05a50;
+  --gold:#d6a84a;--green:#4cc38a;--blue:#4da3ff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% -10%,#20262d 0,#0b0d10 42%,#07090b 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+body{min-height:100vh}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.wrap{width:min(720px,100%);margin:auto;padding:24px 16px 44px}
+.brand{text-align:center;margin:10px 0 22px}
+.brand h1{margin:0;color:#f1f3f5;font-size:42px;line-height:1;font-weight:900;letter-spacing:.12em;text-shadow:0 3px 20px #000}
+.brand .red{color:var(--red2)}
+.brand p{margin:9px 0 0;color:var(--gold);font-size:11px;letter-spacing:.2em;text-transform:uppercase}
+.card{background:linear-gradient(180deg,#151a20,#0f1318);border:1px solid var(--line);border-radius:16px;padding:18px;margin:12px 0;box-shadow:0 14px 35px #0005}
+h2{margin:0 0 6px;font-size:21px}
+.small{font-size:13px;color:var(--muted)}
+label{display:block;color:#9ca6af;font-size:11px;font-weight:800;letter-spacing:.12em;margin:14px 0 6px;text-transform:uppercase}
+input,textarea{width:100%;border:1px solid var(--line);background:#090c0f;color:var(--text);border-radius:10px;padding:12px 13px;outline:none}
+input:focus,textarea:focus{border-color:#53616e;box-shadow:0 0 0 3px #ffffff08}
+.btn{width:100%;border:0;border-radius:10px;padding:12px 15px;margin-top:10px;font-weight:800;color:#fff;background:linear-gradient(180deg,var(--red2),#b72d27);box-shadow:0 7px 18px #0005}
+.btn:hover{filter:brightness(1.08)}
+.btn.alt{background:#171c21;border:1px solid var(--line);color:var(--text);box-shadow:none}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.notice{min-height:20px;color:#ff8178;text-align:center;font-size:13px;margin-top:9px}
+.status{text-align:center;color:var(--muted);font-size:13px;margin:10px 0}
+.code{font-size:30px;letter-spacing:.2em;text-align:center;color:var(--gold);font-weight:900;margin:7px 0}
+.players{display:grid;gap:7px;margin-top:12px}
+.player{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:#0c1014}
+.player.me{border-color:#80652c}
+.player .name{font-weight:750}
+.badge{font-size:12px;color:var(--muted)}
+.badge.ready{color:var(--green)}
+.hero{display:grid;place-items:center;width:124px;height:124px;margin:12px auto;border-radius:16px;background:linear-gradient(145deg,#3a4651,#161b21);border:2px solid #56626d;box-shadow:inset 0 0 25px #0008,0 10px 28px #0008}
+.hero .icon{font-size:50px}
+.secret{text-align:center}
+.secret .kind{font-size:11px;color:var(--gold);letter-spacing:.15em;font-weight:900}
+.secret .item{font-size:27px;font-weight:900;margin-top:4px}
+.spybox{text-align:center;padding:12px;border:1px solid #632a27;background:#211111;border-radius:12px}
+.spybox .spy{font-size:30px;font-weight:950;color:#ff7168}
+.votegrid{display:grid;gap:8px;margin-top:10px}
+.vote{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px;border-radius:11px;border:1px solid var(--line);background:#11161b;color:var(--text);text-align:left}
+.vote.selected{border-color:var(--gold);background:#211b10}
+.result{text-align:center}
+.result.win{border-color:#315f4c}
+.result.lose{border-color:#652e2a}
+.result h2{font-size:28px}
+.ok{color:var(--green)} .bad{color:#ff7168}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+.footer{text-align:center;color:#626c75;font-size:11px;margin-top:22px}
+.hidden{display:none!important}
+.pulse{animation:pulse 1.5s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 5px #d83b3220}}
+@media(max-width:520px){
+ .wrap{padding:15px 11px 35px}
+ .brand h1{font-size:34px}
+ .row{grid-template-columns:1fr}
+ .card{padding:15px}
+ .code{font-size:26px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="brand">
+    <h1>Ш<span class="red">П</span>ИОН</h1>
+    <p>Dota 2 · online · WebRTC</p>
+  </header>
+  <main id="app"></main>
+  <div class="footer">Игра работает прямо в браузере через WebRTC. Для подключения используется PeerJS Cloud.</div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script>
+
+const ITEMS = [
+"Tango","Healing Salve","Clarity","Faerie Fire","Enchanted Mango","Smoke of Deceit",
+"Observer Ward","Sentry Ward","Dust of Appearance","Town Portal Scroll","Bottle",
+"Blood Grenade","Iron Branch","Magic Stick","Magic Wand","Boots of Speed","Phase Boots",
+"Power Treads","Arcane Boots","Tranquil Boots","Hand of Midas","Blink Dagger",
+"Force Staff","Glimmer Cape","Eul's Scepter of Divinity","Aether Lens","Hurricane Pike",
+"Lotus Orb","Solar Crest","Orchid Malevolence","Bloodthorn","Black King Bar",
+"Linken's Sphere","Blade Mail","Vanguard","Crimson Guard","Shiva's Guard",
+"Assault Cuirass","Heart of Tarrasque","Heaven's Halberd","Manta Style",
+"Mask of Madness","Armlet of Mordiggian","Battle Fury","Maelstrom","Mjollnir",
+"Monkey King Bar","Desolator","Skull Basher","Abyssal Blade","Bloodstone",
+"Daedalus","Butterfly","Radiance","Satanic","Silver Edge","Nullifier",
+"Refresher Orb","Octarine Core","Scythe of Vyse","Sange","Yasha","Kaya",
+"Echo Sabre","Harpoon","Diffusal Blade","Disperser","Eye of Skadi",
+"Ethereal Blade","Meteor Hammer","Revenant's Brooch","Moon Shard",
+"Aghanim's Scepter","Aghanim's Shard","Aghanim's Blessing","Dragon Lance",
+"Wind Waker","Parasma","Witch Blade","Holy Locket","Helm of the Dominator",
+"Crystalys","Divine Rapier","Gem of True Sight","Aegis of the Immortal",
+"Cheese","Shadow Blade"
+];
+
+const HEROES = [
+"Axe","Bane","Crystal Maiden","Drow Ranger","Earthshaker","Juggernaut",
+"Invoker","Lina","Lion","Mirana","Pudge","Shadow Fiend","Sniper","Sven",
+"Templar Assassin","Tiny","Vengeful Spirit","Windranger","Witch Doctor",
+"Zeus","Anti-Mage","Bloodseeker","Bristleback","Centaur Warrunner","Clockwerk",
+"Dazzle","Dragon Knight","Ember Spirit","Faceless Void","Gyrocopter",
+"Juggernaut","Kunkka","Lich","Lifestealer","Luna","Magnus","Marci","Medusa",
+"Morphling","Necrophos","Night Stalker","Omniknight","Phantom Assassin",
+"Phantom Lancer","Queen of Pain","Razor","Rubick","Sand King","Slark",
+"Snapfire","Spirit Breaker","Storm Spirit","Tidehunter","Tusk","Ursa",
+"Void Spirit","Warlock","Weaver","Wraith King"
+];
+
+const app = document.getElementById("app");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+const $ = id => document.getElementById(id);
+
+let network = {
+  peer: null,
+  hostId: null,
+  isHost: false,
+  conn: null,
+  connections: new Map()
+};
+let players = new Map();
+let me = {
+  name: localStorage.getItem("spy-name") || "",
+  ready:false, vote:null, guess:null, id:null
+};
+let state = {screen:"menu", code:"", error:"", round:null, result:null};
+
+function pickSecret(seed){
+  const useHeroes = seed % 2 === 0;
+  const pool = useHeroes ? HEROES : ITEMS;
+  return {
+    type: useHeroes ? "hero" : "item",
+    value: pool[Math.floor(seed / 17) % pool.length]
+  };
+}
+function roleFor(round, id, ids){
+  const spy = ids[round.spyIndex % ids.length];
+  return {spy, secret:round.secret};
+}
+function avatar(text){
+  const chars = text.split(/[\\s-]+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase() || "?";
+  return `<div class="hero"><div class="icon">${esc(chars)}</div></div>`;
+}
+function header(title,sub=""){
+  return `<div class="card"><h2>${esc(title)}</h2>${sub?`<div class="small">${esc(sub)}</div>`:""}</div>`;
+}
+function render(){
+  if(state.screen==="menu") renderMenu();
+  else if(state.screen==="lobby") renderLobby();
+  else if(state.screen==="game") renderGame();
+  else if(state.screen==="local") renderLocal();
+}
+function renderMenu(){
+  app.innerHTML = `
+  <div class="card">
+    <label>Никнейм</label>
+    <input id="nick" maxlength="18" placeholder="Например, xellenti" value="${esc(me.name)}">
+    <label>Код комнаты</label>
+    <input id="roomCode" maxlength="16" placeholder="Например, dota123" value="${esc(state.code)}" autocomplete="off">
+    <div class="notice">${esc(state.error)}</div>
+    <button class="btn" id="join">Войти в комнату</button>
+    <div class="row">
+      <button class="btn alt" id="create">Создать комнату</button>
+      <button class="btn alt" id="local">На одном устройстве</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Как играть онлайн</h2>
+    <p class="small">Один игрок создаёт комнату и отправляет код друзьям. Друзья вводят код и подключаются. Нужно минимум 3 игрока.</p>
+  </div>`;
+  $("join").onclick=()=>connect(false);
+  $("create").onclick=()=>connect(true);
+  $("local").onclick=()=>{state.screen="local";state.error="";render()};
+}
+function hostIdFor(code){
+  return "spy-dota-" + code.replace(/[^a-z0-9_-]/g, "");
+}
+function makePeer(id){
+  const opts={host:"0.peerjs.com",port:443,path:"/",secure:true,debug:1,config:{iceServers:[{urls:"stun:stun.l.google.com:19302"}]}};
+  return id ? new Peer(id,opts) : new Peer(opts);
+}
+function closeNetwork(){
+  try{network.conn?.close()}catch{}
+  for(const c of network.connections.values()){try{c.close()}catch{}}
+  network.connections.clear();
+  try{network.peer?.destroy()}catch{}
+  network.peer=null;network.conn=null;network.hostId=null;network.isHost=false;
+  players.clear();me.id=null;
+}
+function showNetError(prefix,e){
+  const type=e?.type||e?.message||"";
+  state.error=prefix+(type?" ["+type+"]":"");
+  render();
+  console.error(prefix,e);
+}
+function connect(create){
+  if(typeof Peer!=="function"){
+    state.error="Не загрузилась библиотека онлайн-игры. Обнови страницу и попробуй ещё раз.";
+    render();return;
+  }
+  const name=$("nick").value.trim();
+  let code=create ? Math.random().toString(36).slice(2,7) : $("roomCode").value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");
+  if(!name || !code){state.error="Введи никнейм и код комнаты.";render();return}
+  closeNetwork();
+  me.name=name;me.ready=false;me.vote=null;me.guess=null;localStorage.setItem("spy-name",name);
+  state.code=code;state.screen="lobby";state.error=create?"Создаём комнату…":"Подключаемся к комнате…";state.round=null;state.result=null;render();
+
+  network.isHost=create;
+  network.hostId=hostIdFor(code);
+  try{
+    network.peer=makePeer(create?network.hostId:null);
+    network.peer.on("open", id=>{
+      me.id=id;
+      if(create){
+        players.set(id,{id,name:me.name,ready:false,vote:null,guess:null});
+        state.error="Комната создана. Отправь друзьям код: "+code;
+        renderLobby();
+      }else{
+        state.error="Соединение найдено, устанавливаем связь…";render();
+        const conn=network.peer.connect(network.hostId,{reliable:true,metadata:{name:me.name}});
+        setupClientConnection(conn);
+      }
+    });
+    network.peer.on("connection",conn=>{
+      if(!network.isHost)return;
+      setupHostConnection(conn);
+    });
+    network.peer.on("error",e=>{
+      const type=e?.type||"ошибка";
+      if(type==="unavailable-id") state.error="Код комнаты уже занят. Создай новую комнату.";
+      else if(type==="peer-unavailable") state.error="Комната с таким кодом не найдена. Проверь код.";
+      else if(type==="network") state.error="Нет связи с сервером подключения PeerJS. Проверь интернет.";
+      else if(type==="browser-incompatible") state.error="Браузер не поддерживает WebRTC. Открой Chrome, Edge, Firefox или Safari.";
+      else state.error="Онлайн-ошибка: "+type;
+      render();console.error("PeerJS",e);
+    });
+    network.peer.on("disconnected",()=>{
+      state.error="Связь с сервером подключения потеряна. Попробуй войти снова.";render();
+    });
+  }catch(e){showNetError("Не удалось открыть онлайн-комнату.",e)}
+}
+function setupHostConnection(conn){
+  network.connections.set(conn.peer,conn);
+  conn.on("open",()=>{
+    const meta=conn.metadata||{};
+    const existing=players.get(conn.peer)||{id:conn.peer,name:"Игрок",ready:false,vote:null,guess:null};
+    existing.name=String(meta.name||existing.name).slice(0,18);
+    players.set(conn.peer,existing);
+    conn.send(makeSnapshot());
+    broadcastSnapshot();
+    renderLobby();
+  });
+  conn.on("data",msg=>handleHostMessage(conn,msg));
+  conn.on("close",()=>{
+    network.connections.delete(conn.peer);players.delete(conn.peer);
+    if(state.round) evaluateResult();
+    broadcastSnapshot();redraw();
+  });
+  conn.on("error",e=>console.error("connection error",e));
+}
+function setupClientConnection(conn){
+  network.conn=conn;
+  conn.on("open",()=>{
+    state.error="Подключено к комнате. Ожидаем игроков…";
+    conn.send({type:"join",name:me.name});
+    render();
+  });
+  conn.on("data",msg=>handleClientMessage(msg));
+  conn.on("close",()=>{
+    state.error="Хост закрыл комнату или соединение потеряно.";
+    state.round=null;state.result=null;players.clear();redraw();
+  });
+  conn.on("error",e=>showNetError("Не удалось подключиться к хосту.",e));
+}
+function makeSnapshot(){
+  return {
+    type:"snapshot",
+    hostId:network.hostId,
+    players:[...players.values()].map(p=>({...p})),
+    round:state.round,
+    result:state.result
+  };
+}
+function broadcastSnapshot(){
+  if(!network.isHost)return;
+  const snap=makeSnapshot();
+  for(const c of network.connections.values()) if(c.open){try{c.send(snap)}catch(e){console.error(e)}}
+  redraw();
+}
+function sendToHost(msg){
+  if(network.conn?.open) network.conn.send(msg);
+  else {state.error="Соединение ещё не готово. Подожди пару секунд.";render()}
+}
+function handleHostMessage(conn,msg){
+  if(!msg||typeof msg!=="object")return;
+  const p=players.get(conn.peer); if(!p)return;
+  if(msg.type==="join"){
+    p.name=String(msg.name||p.name||"Игрок").slice(0,18);
+    broadcastSnapshot();return;
+  }
+  if(msg.type==="ready"){
+    if(state.round)return;
+    p.ready=!!msg.value;broadcastSnapshot();maybeStart();return;
+  }
+  if(msg.type==="vote"){
+    if(!state.round)return;
+    const allowed=state.round.ids.includes(String(msg.id));
+    if(allowed)p.vote=String(msg.id);
+    evaluateResult();broadcastSnapshot();return;
+  }
+  if(msg.type==="guess"){
+    if(!state.round)return;
+    p.guess=String(msg.value||"").slice(0,80);
+    evaluateResult();broadcastSnapshot();return;
+  }
+  if(msg.type==="reset"){
+    resetRound();return;
+  }
+}
+function handleClientMessage(msg){
+  if(!msg||msg.type!=="snapshot")return;
+  state.round=msg.round||null;state.result=msg.result||null;
+  players.clear();
+  for(const p of (msg.players||[])) players.set(p.id,p);
+  const mine=players.get(me.id);
+  if(mine){me.ready=!!mine.ready;me.vote=mine.vote||null;me.guess=mine.guess||null}
+  state.error="";
+  state.screen=state.round?"game":"lobby";
+  redraw();
+}
+function allPlayers(){return [...players.values()];}
+function maybeStart(){
+  if(!network.isHost || state.round)return;
+  const ps=allPlayers();
+  if(ps.length<3 || !ps.every(p=>p.ready))return;
+  const ids=ps.map(p=>p.id).sort();
+  const seed=Date.now();
+  const round={id:String(seed),ids,spyIndex:seed%ids.length,secret:pickSecret(seed)};
+  state.round=round;state.result=null;
+  ps.forEach(p=>{p.ready=false;p.vote=null;p.guess=null});
+  broadcastSnapshot();
+}
+function evaluateResult(){
+  if(!network.isHost||!state.round)return;
+  const ps=allPlayers().filter(p=>state.round.ids.includes(p.id));
+  const spyId=state.round.ids[state.round.spyIndex%state.round.ids.length];
+  const spy=ps.find(p=>p.id===spyId);
+  if(!spy)return;
+  if(spy.guess){
+    const correct=spy.guess.trim().toLowerCase()===state.round.secret.value.trim().toLowerCase();
+    state.result={winner:correct?"spy":"civ",reason:correct?"Шпион угадал секрет.":"Шпион ошибся."};
+    return;
+  }
+  if(ps.length>=3 && ps.every(p=>p.vote)){
+    const counts={};ps.forEach(p=>counts[p.vote]=(counts[p.vote]||0)+1);
+    const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    const top=sorted.length===1||sorted[0][1]>sorted[1][1]?sorted[0][0]:null;
+    state.result={winner:top===spyId?"civ":"spy",reason:top===spyId?"Шпиона вычислили.":top?"Большинство проголосовало не за шпиона.":"Голоса разделились."};
+  }
+}
+function resetRound(){
+  if(!network.isHost)return;
+  state.round=null;state.result=null;
+  for(const p of players.values()){p.ready=false;p.vote=null;p.guess=null}
+  broadcastSnapshot();renderLobby();
+}
+function renderLobby(){
+  const ps=allPlayers();
+  const connected=network.isHost ? network.connections.size+1 : (network.conn?.open?ps.length:1);
+  app.innerHTML=`
+  ${header("Зал ожидания","Игроков: "+ps.length+" · минимум 3")}
+  <div class="card">
+    <div class="small" style="text-align:center">КОД КОМНАТЫ</div>
+    <div class="code">${esc(state.code)}</div>
+    <div class="small" style="text-align:center">Отправь код друзьям</div>
+    <div class="players">${ps.map(p=>`
+      <div class="player ${p.id===me.id?"me":""}">
+        <span class="name">${esc(p.name||"Игрок")}${p.id===me.id?" (ты)":""}${p.id===network.hostId?" 👑":""}</span>
+        <span class="badge ${p.ready?"ready":""}">${p.ready?"● готов":"○ не готов"}</span>
+      </div>`).join("")}</div>
+    <button class="btn" id="ready" ${ps.some(p=>p.id===me.id)?"":"disabled"}>${me.ready?"Я не готов":"Я готов"}</button>
+    <button class="btn alt" id="leave">Выйти</button>
+    <div class="status">${esc(state.error)}<br>${connected<3?"Нужно ещё "+(3-connected)+" игрока.":ps.every(p=>p.ready)?"Все готовы — начинаем…":"Нажмите «Я готов» все игроки."}</div>
+  </div>`;
+  $("ready").onclick=()=>{
+    me.ready=!me.ready;
+    if(network.isHost){const p=players.get(me.id);if(p)p.ready=me.ready;broadcastSnapshot();maybeStart()}
+    else sendToHost({type:"ready",value:me.ready});
+  };
+  $("leave").onclick=leave;
+}
+function renderGame(){
+  if(!state.round){state.screen="lobby";renderLobby();return}
+  const ps=allPlayers().filter(p=>state.round.ids.includes(p.id));
+  const mine=players.get(me.id);
+  if(!mine||!state.round.ids.includes(me.id)){
+    app.innerHTML=`${header("Раунд уже идёт","Ты подключился слишком поздно")}
+      <div class="card"><p class="small" style="text-align:center">Дождись окончания текущего раунда — затем можно будет войти в следующий.</p><button class="btn alt" id="leave">Выйти</button></div>`;
+    $("leave").onclick=leave;return;
+  }
+  const role=roleFor(state.round,me.id,state.round.ids);
+  const isSpy=role.spy===me.id;
+  const secret=state.round.secret;
+  let main=isSpy
+    ? `<div class="spybox"><div class="spy">🕵️ ШПИОН</div><div class="small">Ты не знаешь секрет. Вычисли его по вопросам.</div></div>`
+    : `<div class="secret"><div class="kind">СЕКРЕТНЫЙ ${secret.type==="hero"?"ГЕРОЙ":"ПРЕДМЕТ"}</div>${avatar(secret.value)}<div class="item">${esc(secret.value)}</div></div>`;
+  let result="";
+  if(state.result){
+    const win=state.result.winner==="civ";
+    const spyId=state.round.ids[state.round.spyIndex%state.round.ids.length];
+    const spy=ps.find(p=>p.id===spyId);
+    result=`<div class="card result ${win?"win":"lose"}">
+      <h2 class="${win?"ok":"bad"}">${win?"МИРНЫЕ ПОБЕДИЛИ":"ШПИОН ПОБЕДИЛ"}</h2>
+      <p class="small">${esc(state.result.reason)}</p>
+      <p class="small">Шпион: <b>${esc(spy?.name||"неизвестен")}</b><br>Секрет: <b>${esc(secret.value)}</b></p>
+      ${network.isHost?`<button class="btn" id="nextRound">В лобби</button>`:"<div class=\"status\">Хост возвращает игроков в лобби…</div>"}
+    </div>`;
+  }
+  const voting=ps.map(p=>{
+    if(p.id===me.id)return "";
+    const selected=me.vote===p.id;
+    const count=ps.filter(x=>x.vote===p.id).length;
+    return `<button class="vote ${selected?"selected":""}" data-vote="${esc(p.id)}"><span>${esc(p.name||"Игрок")}${p.id===network.hostId?" 👑":""}</span><span>${selected?"✓ ":""}${count?count+" 🗳️":""}</span></button>`;
+  }).join("");
+  const guess=isSpy&&!state.result?`<div class="card"><label>Если понял, что за секрет</label><input id="guess" list="secrets" placeholder="Напиши точное название" autocomplete="off"><button class="btn" id="guessBtn">🎯 Угадать секрет</button></div>`:"";
+  app.innerHTML=`
+    ${header("Раунд","Dota 2 · случайный герой или предмет")}
+    <div class="card">${main}</div>
+    ${guess}
+    <div class="card"><label>Голосование · ${ps.filter(p=>p.vote).length}/${ps.length}</label>
+      <div class="votegrid">${voting}</div>
+      <div class="status">Голосуй за того, кто кажется шпионом.</div>
+    </div>
+    ${result}
+    <button class="btn alt" id="leave">Выйти из комнаты</button>
+    <datalist id="secrets">${[...new Set([...ITEMS,...HEROES])].map(x=>`<option value="${esc(x)}">`).join("")}</datalist>`;
+  document.querySelectorAll("[data-vote]").forEach(b=>b.onclick=()=>{
+    if(state.result)return;
+    const id=b.dataset.vote;me.vote=id;
+    if(network.isHost){const p=players.get(me.id);if(p)p.vote=id;evaluateResult();broadcastSnapshot()}
+    else sendToHost({type:"vote",id});
+    renderGame();
+  });
+  if($("guessBtn")) $("guessBtn").onclick=()=>{
+    const v=$("guess").value.trim();if(!v)return;
+    const exact=[...ITEMS,...HEROES].find(x=>x.toLowerCase()===v.toLowerCase());
+    me.guess=exact||v;
+    if(network.isHost){const p=players.get(me.id);if(p)p.guess=me.guess;evaluateResult();broadcastSnapshot()}
+    else sendToHost({type:"guess",value:me.guess});
+    renderGame();
+  };
+  if($("nextRound")) $("nextRound").onclick=()=>{resetRound()};
+  $("leave").onclick=leave;
+}
+function redraw(){
+  if(state.screen==="lobby")renderLobby();
+  else if(state.screen==="game")renderGame();
+}
+function leave(){
+  closeNetwork();
+  state.round=null;state.result=null;state.screen="menu";state.error="";
+  me.ready=false;me.vote=null;me.guess=null;
+  render();
+}
+
+let localState={players:[],i:0,seed:0,show:false};
+function renderLocal(){
+  if(localState.players.length===0){
+    app.innerHTML=`${header("Игра на одном устройстве","3–12 игроков")}
+      <div class="card"><label>Имена игроков — по одному в строке</label>
+      <textarea id="localNames" rows="7" placeholder="Аня\nБорис\nВлад"></textarea>
+      <div class="notice">${esc(state.error)}</div>
+      <button class="btn" id="localStart">Начать</button>
+      <button class="btn alt" id="back">Назад</button></div>`;
+    $("localStart").onclick=()=>{
+      const names=$("localNames").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0,12);
+      if(names.length<3){state.error="Нужно минимум 3 игрока.";renderLocal();return}
+      localState={players:names,i:0,seed:Date.now(),show:false};state.error="";renderLocal();
+    };
+    $("back").onclick=()=>{state.screen="menu";render()};
+    return;
+  }
+  const ids=localState.players.map((_,i)=>String(i));
+  const secret=pickSecret(localState.seed);
+  const spy=ids[localState.seed%ids.length];
+  if(localState.i<localState.players.length){
+    const isSpy=String(localState.i)===spy;
+    app.innerHTML=`${header("Передай устройство",`Игрок ${localState.i+1} из ${localState.players.length}`)}
+      <div class="card secret"><div class="item">${esc(localState.players[localState.i])}</div>
+      ${localState.show?(isSpy?`<div class="spybox"><div class="spy">🕵️ ШПИОН</div><div class="small">Секрет тебе неизвестен.</div></div>`:`<div class="secret"><div class="kind">СЕКРЕТ</div>${avatar(secret.value)}<div class="item">${esc(secret.value)}</div></div>`):`<p class="small">Нажми кнопку и смотри экран только ты.</p>`}
+      <button class="btn" id="show">${localState.show?"Скрыть и передать":"Показать роль"}</button></div>`;
+    $("show").onclick=()=>{
+      if(localState.show){localState.show=false;localState.i++;}else localState.show=true;
+      renderLocal();
+    };
+  }else{
+    app.innerHTML=`${header("Обсуждение","Все роли уже разданы")}
+      <div class="card"><p class="small" style="text-align:center">Обсудите вопросы, выберите подозреваемого и нажмите кнопку.</p>
+      <button class="btn" id="finish">Показать результат</button></div>`;
+    $("finish").onclick=()=>{
+      const spyName=localState.players[+spy]||( "игрок "+(+spy+1));
+      localState.players=[];localState.i=0;localState.show=false;
+      state.error=`Шпион: ${spyName} · секрет: ${secret.value}`;
+      renderLocal();
+    };
+  }
+}
+
+render();
+
+setInterval(()=>{
+  if(network.isHost && state.screen==="lobby") maybeStart();
+  if(network.isHost && state.screen==="game" && state.round && !state.result){ evaluateResult(); if(state.result) broadcastSnapshot(); }
+},1200);
+
+</script>
+</body>
+</html>
